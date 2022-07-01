@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEAFLET</title>
+    
+    
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+    crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js" integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+    crossorigin=""></script>
+
+    <!-- Load Esri Leaflet from CDN -->
+    <script src="https://unpkg.com/esri-leaflet@3.0.4/dist/esri-leaflet.js"></script>
+    <script src="https://unpkg.com/esri-leaflet-vector@3.0.0/dist/esri-leaflet-vector.js"></script>
+
+
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    <script src='libs/leaflet-timeline-slider.min.js'></script>
+
+    <script src="https://unpkg.com/sql.js@0.3.2/js/sql.js"></script>
+    <script src="libs/Leaflet_TileLayer_MBTiles.js"></script>
+</head>
+<style>
+    #mapid {
+        width:90%;
+        margin: auto;
+        height: 80vh;
+        z-index: 10;   
+    }
+
+    #legend {
+        position: absolute;
+        top: 0;
+        left:5%;
+        align-items: center;
+        font-style: italic;
+        width:90%;
+        margin: auto;
+        display: flex;
+        flex-wrap: wrap;
+        z-index: 20; 
+        background-color: rgba(255,255,255,0.7);  
+    }
+
+    .legendItem {
+        display: flex;        
+        padding: 0 10px;
+        font-size: 14px !important;
+        
+    }
+
+    .bordered {
+        border-right: 1px solid rgb(0,0,0);
+        border-image: linear-gradient(to bottom, rgba(255, 255, 255, 0) 25%, rgba(0,0,0,1) 25%, rgba(0,0,0,1) 75%,rgba(255,255,255,0) 75%);
+        border-image-slice: 5; 
+    }
+
+    .ticks {
+      font-size: 10px;
+    }
+
+    #slider svg {
+        display: block;
+        margin: auto;
+        overflow: visible;
+    }
+
+    .track,
+    .track-inset,
+    .track-overlay {
+      stroke-linecap: round;
+    }
+
+    .track {
+      stroke: #000;
+      stroke-opacity: 0.3;
+      stroke-width: 10px;
+    }
+
+    .track-inset {
+      stroke: #dcdcdc;
+      stroke-width: 8px;
+    }
+
+    .track-overlay {
+      pointer-events: stroke;
+      stroke-width: 50px;
+      stroke: transparent;
+      cursor: pointer;
+    }
+
+    .handle {
+      fill: #E8CECA;
+      stroke: #000;
+      stroke-opacity: 0.5;
+      stroke-width: 1.25px;
+      opacity: 0.5;
+    }
+
+    .label {
+        z-index: 100000;
+    }
+
+    text {
+        font-size: 16px;
+    }
+
+    .toggleButton {
+        margin-right: 30px; 
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+
+    .toggleButton span {
+        display:inline-block;    
+        height: 15px;        
+        margin-right: 5px;
+       
+    }
+
+    .toggleButton span.circleItem {
+        width:15px;        
+        border-radius: 50%;
+    }
+
+    .legendGradient {
+        margin: 0 10px;
+        width: 45px;
+        height: 100% !important;
+        background-image: linear-gradient(to bottom, rgba(167,156,154, 1) 0%, rgba(167,156,154, 1) 50%, rgba(220,181,182,1) 50%,rgba(220,181,182,1) 100%);
+    }
+
+    .blur {
+        filter: blur(4px);
+    }
+</style>
+<body>
+
+
+    <div id='legend'>
+        <div class='typeLegend legendItem bordered' >
+            <p style='margin-right: 30px'>виберіть тип <br>обстрілу:</p>
+            <p id='toggleRockets' class='toggleButton'><span class='circleItem' style='background-color: #901B1B; '></span>ракетний</p>
+            <p id='toggleAvia' class='toggleButton'><span class='circleItem' style='background-color: #C14DB2;'></span>авіаційний </p>
+            <p id='toggleArta' class='toggleButton'><span class='circleItem' style='background-color: #E45C04;'></span>артилерійський</p>
+            <p id='toggleOther' class='toggleButton'><span class='circleItem' style='background-color: grey;'></span>інші</p>
+        </div>
+        
+        <div class='blurLegend legendItem bordered' >
+            <p style='margin-right: 30px' class='toggleButton'><span class='circleItem' style='background-color: grey;'></span>Чіткий контур = <br>точні координати</p>
+            <p style='margin-right: 30px' class='toggleButton'><span class='circleItem' style='background-color: grey; filter: blur(4px);'></span>Розмитий контур = <br>приблизні координати </p>
+        </div>
+
+        <div class='legendItem bordered'>
+            <p class='toggleButton' ><span style='width:20px; border: 2px solid #00FFFF'></span>Наблизьтеся, щоб побачити <br>детальний супутниковий знімок</p>
+        </div>
+
+        <div class='legendItem'>
+            <p class='toggleButton'>Окуповані <br>території:<span class='legendGradient'></span>до 2022<br>після 2022</p>
+        </div>
+
+       
+    </div>
+    <div id='mapid'></div>
+    <div id="slider"></div>
+
+<script>
+
+    function isStringInArray(str, arr) {
+       var index = arr.findIndex(_strCheck)
+        if (arr.findIndex(_strCheck) === -1) return false;
+        return arr[index];
+        function _strCheck(el) {
+            return el.match(str);
+        }
+    }
+
+    //create map
+    const apiKey = "AAPK66cae70f985f468f96c0b41feca04cf3CunjYzlitzzOKIL4rJYq_LVm51nklmGl30drC6KFyIn4dFnq4O2GcVLCcMg6dFF7";
+    
+    var map = L.map('mapid', { 
+        preferCanvas: true, 
+        zoomControl: false,
+        minZoom: 6,  
+        maxZoom:18 
+    }).setView([48.5, 32.08], 6);
+
+    L.control.zoom({ position: 'bottomright'}).addTo(map);
+
+    //additional panes
+    map.createPane('points');
+    map.getPane('points').style.zIndex = 600;
+
+    map.createPane('zone');
+    map.getPane('zone').style.zIndex = 500;
+
+    map.createPane('satelite');
+    map.getPane('satelite').style.zIndex = 700;
+
+    map.createPane('rects');
+    map.getPane('rects').style.zIndex = 900;
+
+    L.esri.Vector.vectorBasemapLayer("ArcGIS:LightGray", {
+        apiKey: apiKey
+    }).addTo(map);
+
+    var occupatedOldStyle = { weight:0, fillColor: '#A69B99',  fillOpacity: 0.7, }
+    var occupatedNewStyle = { weight:0, fillColor: '#DCB5B6',  fillOpacity: 0.7, } 
+
+    var showRockets = true;
+    var showAvia = true;
+    var showArta = true;
+    var showOther = true;
+
+    var layerGroup = L.layerGroup().addTo(map);
+
+    var pointsOther = L.layerGroup({  panes: 'points' }).addTo(map);
+    var pointsArta = L.layerGroup({panes: 'points' }).addTo(map);
+    var pointsRockets = L.layerGroup({ panes: 'points'}).addTo(map);
+    var pointsAvia = L.layerGroup({ panes: 'points' }).addTo(map);
+
+
+    var x;
+
+    $('#toggleRockets').on('click', function(){
+        if(showRockets){
+            map.removeLayer(pointsRockets);
+            $(this).css("opacity", 0.2);
+        } else {
+            map.addLayer(pointsRockets);
+            $(this).css("opacity", 1);
+        }
+        showRockets = !showRockets
+    })
+
+    $('#toggleAvia').on('click', function(){
+        if(showAvia){
+            map.removeLayer(pointsAvia);
+            $(this).css("opacity", 0.2);
+        } else {
+            map.addLayer(pointsAvia);
+            $(this).css("opacity", 1);
+        }
+        showAvia = !showAvia
+    });
+
+    $('#toggleArta').on('click', function(){
+        if(showArta){
+            map.removeLayer(pointsArta);
+            $(this).css("opacity", 0.2);
+        } else {
+            map.addLayer(pointsArta);
+            $(this).css("opacity", 1);
+        }
+        showArta = !showArta
+    });
+
+    $('#toggleOther').on('click', function(){
+        if(showOther){
+            map.removeLayer(pointsOther);
+            $(this).css("opacity", 0.2);
+        } else {
+            map.addLayer(pointsOther);
+            $(this).css("opacity", 1);
+        }
+        showOther = !showOther
+    })
+
+
+   //occupied zone jsons
+   var jsonList; 
+   $.getJSON('/ua_war_data_geojsons/', function (files) {
+        jsonList = files 
+    }); 
+
+    const link = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyFuA7nxANnn7BwXn7az5D5L-V7yKnETgTybfKSIGmoYz2qVkc6FWSH7f0l-1Gt_dML1VpywPUzXwp/pub?gid=1376631421&single=true&output=csv"
+
+     
+    
+    
+    d3.csv(link).then(function(points){ 
+
+        points.forEach(function(d){
+            d['Дата'] = d3.timeParse("%Y-%m-%d")(d['Дата']);
+            //d['Дата'] = new Date(d['Дата'])
+            d.LATITUDE = +d.LATITUDE;
+            d.LONGITUDE = +d.LONGITUDE;
+            d.type = d['артилерія, міномети, танки'] === '1' ? "arta" : 
+                            d['авіа'] === '1' ? "avia" :
+                            d['ракетний'] === '1' ? "rocket" : "else"
+        });
+
+        //console.table(points);
+        
+        /* UPDATE */
+        function update(h) {
+            handle.attr("width", x(h) > 5 ? x(h) : 5 );
+            label
+                .attr("x", x(h))
+                .text(formatDate(h));
+
+            var selectedValue = dataDate(h).toString();
+
+          
+
+
+             //обираємо потрібний шейп окпуації
+            fetch("ua_war_data_geojsons/" + isStringInArray(selectedValue, jsonList) + "")
+                .then(function (response) { return response.json() })
+                .then(function (data) {  
+
+                    layerGroup.eachLayer(function (layer) {
+                        layerGroup.removeLayer(layer);
+                    });
+
+                    L.geoJson(data, {
+                        style: occupatedNewStyle,
+                        pane: 'zone'
+                    }).addTo(layerGroup);
+                
+                });   
+                
+            var filtered_points = points.filter(function(d){
+                return d['Дата'] < d3.timeParse("%Y-%m-%d")(selectedValue);
+            }).filter(function(d) { return d['Дата'] != null & d.LONGITUDE != 0 });
+
+            pointsArta.clearLayers();
+            pointsRockets.clearLayers();
+            pointsAvia.clearLayers();
+            pointsOther.clearLayers();
+            map.options.preferCanvas = false;
+            if(filtered_points.length > 0){
+                let Ot_p = filtered_points.filter(function(d){ return d.type === 'else'});
+                let A_p = filtered_points.filter(function(d){ return d.type === 'arta'});
+                let R_p = filtered_points.filter(function(d){ return d.type === 'rocket'});
+                let Av_p = filtered_points.filter(function(d){ return d.type === 'avia'});
+                
+                if(Ot_p.length > 0) {  addMarkers(Ot_p, 'gray', pointsOther); }
+                if(A_p.length > 0) {  addMarkers(A_p, '#E45C04', pointsArta);  }                
+                if(R_p.length > 0) {  addMarkers(R_p, '#901B1B', pointsRockets); }
+                if(Av_p.length > 0) {  addMarkers(Av_p, '#C14DB2', pointsAvia); }
+                
+                
+            }  
+            
+            map.options.preferCanvas = true;
+        
+        
+        } /* UPDATE end */
+
+
+        function addMarkers(array, style, theLayer){              
+
+                array.forEach(function(d){
+                    var coordinates = [d.LATITUDE, d.LONGITUDE];
+                    let className = d['координати']=== "точні" ?  'focus' : "blur";
+                    var marker = L.circleMarker(coordinates, {'className': className}, 800);
+                        
+                        marker.setStyle({                        
+                            color: 'transparent',
+                            fillColor: style,
+                            fillOpacity: d['координати']=== "точні" ? 1 : 0.7,
+                            opacity: d['координати']=== "точні" ? 1 : 0.7,
+                            radius: d['координати']=== "точні" ? 4 : 6,
+                            pane: 'points'
+                        });      
+
+                    marker.addTo(theLayer);
+
+                });
+            }
+
+           
+
+        fetch("ua_war_data_geojsons/2022-02-23.geojson")
+            .then(function (response) { return response.json() })
+            .then(function (data) {  
+                L.geoJson(data, {
+                    style: occupatedOldStyle,
+                }).addTo(map);                     
+          }); 
+
+          var mb = L.tileLayer.mbTiles('tiles/003.mbtiles', {
+            minZoom: 9,            
+            pane: 'satelite',
+        }).addTo(map);
+        
+
+        let radiusMts = 15500;
+        let bounds = L.latLng(48.1451985,37.7098482).toBounds(radiusMts);
+        L.rectangle(bounds, { color: "#00FFFF", fillColor: "transparent", weight: 2, pane: "rects" }).addTo(map);
+
+
+        
+
+/* Slider  vars*/
+    var formatDateIntoYear = d3.timeFormat("%d %b");
+    var formatDate = d3.timeFormat("%d %b");
+    var dataDate = d3.timeFormat("%Y-%m-%d")
+    var parseDate = d3.timeParse("%m/%d/%y");
+
+    var startDate = new Date("2022-02-23"),
+        endDate = new Date();
+
+    var margin = {top:10, right:50, bottom:0, left: 30},
+        width = d3.select('#mapid').node().getBoundingClientRect().width * 0.99,
+        height = 500 - margin.top - margin.bottom;
+
+
+    var svg = d3.select("#slider")
+         .append("svg")
+         .attr("width", width)
+         .attr("height", height + margin.top + margin.bottom);  
+
+     var moving = false;
+     var currentValue = 0;
+     var targetValue = width; 
+     
+     x = d3.scaleTime()
+         .domain([startDate, endDate])
+         .range([0, width])
+         .clamp(true);
+
+     var slider = svg.append("g")
+         .attr("class", "slider")
+         .attr("transform", "translate(" + 0 + "," + 10 + ")");
+
+     var line = slider.append("line")
+         .attr("class", "track")
+         .attr("x1", x.range()[0])
+         .attr("x2", x.range()[1])
+         .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+         .attr("class", "track-inset")
+         .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+         .attr("class", "track-overlay")
+         .call(d3.drag()
+             .on("start.interrupt", function() { slider.interrupt(); })
+             .on("start drag", function() {
+             currentValue = d3.event.x;
+             update(x.invert(currentValue)); 
+             })
+         );
+
+     var tt = slider.insert("g", ".track-overlay")
+         .attr("class", "ticks")
+         .attr("transform", "translate(0," + 18 + ")")
+         .selectAll("text")
+         .data(x.ticks(5))
+         .enter();
+
+    tt.append("text")
+         .attr('class', 'tick-date')
+         .attr("x", x)
+         .attr("y", 10)
+         .attr("text-anchor", "middle")
+         .text(function(d) { return formatDateIntoYear(d); });
+
+    tt.append('line')
+         .attr('class', 'tick-line')
+         .attr("x1", x)
+         .attr("x2", x)
+         .attr("y1", -25)
+         .attr("y2", -5)
+         .attr('stroke', 'black')
+
+     var handle = slider.insert("rect", ".track-overlay")
+         .attr("class", "handle")
+         .attr("x", 0)
+         .attr('y', -10)
+         .attr('height', 20)
+         .attr('width', 5);         
+
+     var label = slider.append("text")  
+         .attr("class", "label")
+         .attr("text-anchor", "middle")
+         .text(formatDate(startDate))
+         .attr("transform", "translate(0," + (+50) + ")");       
+
+    }); 
+
+
+    d3.select(window).on('resize', function(){
+        var nWidth = d3.select('#mapid').node()
+            .getBoundingClientRect().width * 1
+
+        d3.select("#slider")
+            .select('svg')
+            .attr("width", nWidth);
+
+        x.range([0, nWidth])
+
+        d3.select('.track')        
+        .attr("x1", x.range()[0])
+        .attr("x2", x.range()[1]);
+
+        d3.select('.track-inset')        
+        .attr("x1", x.range()[0])
+        .attr("x2", x.range()[1]);
+
+        d3.select('.track-overlay')        
+        .attr("x1", x.range()[0])
+        .attr("x2", x.range()[1]);
+
+        d3.selectAll('.tick-date')           
+        .attr("x", x)
+        .text(function(d) { return formatDateIntoYear(d); });   
+        
+        d3.selectAll('.tick-line')           
+        .attr("x1", x)
+        .attr("x2", x);           
+    }) 
+      
+        </script>
+
+    
+    
+</body>
+</html>
