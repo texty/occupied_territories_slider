@@ -3,6 +3,7 @@ qgis/
 *.shp
 tiles/
 libs/
+tifs/
 
 # Editor directories and files
 .idea

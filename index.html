@@ -25,7 +25,7 @@
     <script src='libs/leaflet-timeline-slider.min.js'></script>
 
     <script src="https://unpkg.com/sql.js@0.3.2/js/sql.js"></script>
-    <script src="libs/Leaflet_TileLayer_MBTiles.js"></script>
+    <script src="libs/Leaflet_TileLayer_MBTiles.js"></script>    
 </head>
 <style>
     #mapid {
@@ -371,9 +371,11 @@
                             opacity: d['координати']=== "точні" ? 1 : 0.7,
                             radius: d['координати']=== "точні" ? 4 : 6,
                             pane: 'points'
-                        });      
+                        }); 
+                        
+                    
 
-                    marker.addTo(theLayer);
+                    marker.addTo(theLayer).bindPopup("<b>Hello world!</b><br />I am a popup.");;
 
                 });
             }
@@ -387,11 +389,27 @@
                     style: occupatedOldStyle,
                 }).addTo(map);                     
           }); 
-
-          var mb = L.tileLayer.mbTiles('tiles/003.mbtiles', {
-            minZoom: 9,            
+ 
+      /*   L.tileLayer.mbTiles('tiles/avdiivka.mbtiles', {
+            minZoom: 10,            
             pane: 'satelite',
         }).addTo(map);
+
+        L.tileLayer.mbTiles('tiles/bucha.mbtiles', {
+            minZoom: 10,            
+            pane: 'satelite',
+        }).addTo(map);
+
+        L.tileLayer.mbTiles('tiles/drujne.mbtiles', {
+            minZoom: 10,            
+            pane: 'satelite',
+        }).addTo(map);
+
+        L.tileLayer.mbTiles('tiles/gorenka.mbtiles', {
+            minZoom: 10,            
+            pane: 'satelite',
+        }).addTo(map); */
+        
         
 
         let radiusMts = 15500;
